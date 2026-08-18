@@ -40,17 +40,7 @@ def create_job(file: UploadFile = File(...)):
 
 @router.get("/{job_id}")
 def get_job(job_id: str):
-    status_file_path = JOBS_DIR / job_id / "status.json"
-
-    if not status_file_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="Job not found."
-        )
-
-    with status_file_path.open("r", encoding="utf-8") as status_file:
-        return json.load(status_file)
-
+    return load_job_status(job_id)
 
 @router.post("/{job_id}/process")
 def process_job(job_id: str):
