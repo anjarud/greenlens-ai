@@ -1,5 +1,4 @@
 import httpx
-from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from backend.app.services.job_storage import (
@@ -8,12 +7,10 @@ from backend.app.services.job_storage import (
     load_job_result,
     save_job_status,
     save_job_result,
+    get_input_file_info
 )
-
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-BACKEND_DIR = Path(__file__).resolve().parents[2]
-JOBS_DIR = BACKEND_DIR / "data" / "jobs"
 
 AI_SERVICE_ANALYZE_URL = "http://127.0.0.1:8001/analyze"
 
@@ -23,19 +20,9 @@ ALLOWED_IMAGE_TYPES = {
     "image/webp",
 }
 
-CONTENT_TYPES_BY_EXTENSION = {
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".png": "image/png",
-    ".webp": "image/webp",
-}
-
-
 @router.post("", status_code=201)
 def create_job(file: UploadFile = File(...)):
     return create_job_from_upload(file)
-
-
 
 @router.get("/{job_id}")
 def get_job(job_id: str):
@@ -45,35 +32,14 @@ def get_job(job_id: str):
 def process_job(job_id: str):
     job_status = load_job_status(job_id)
 
-    job_dir = JOBS_DIR / job_id
-    input_dir = job_dir / "input"
-
-    stored_filename = job_status.get("stored_filename")
-
-    if not stored_filename:
-        raise HTTPException(
-            status_code=500,
-            detail="Stored filename is missing for this job."
-        )
-
-    input_file_path = input_dir / stored_filename
-
-    if not input_file_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="Uploaded image file not found."
-        )
+    input_file_path, stored_filename, content_type = get_input_file_info(
+        job_id,
+        job_status,
+    )
 
     job_status["status"] = "processing"
     job_status["message"] = "Image analysis is running."
     save_job_status(job_id, job_status)
-
-    content_type = job_status.get("content_type")
-    if not content_type:
-        content_type = CONTENT_TYPES_BY_EXTENSION.get(
-            input_file_path.suffix.lower(),
-            "application/octet-stream"
-        )
 
     try:
         with input_file_path.open("rb") as image_file:
@@ -117,7 +83,6 @@ def process_job(job_id: str):
         "message": "Image analysis completed successfully.",
         "result": analysis_result,
     }
-
 
 @router.get("/{job_id}/result")
 def get_job_result(job_id: str):
