@@ -13,12 +13,6 @@ from backend.app.services.job_storage import (
 )
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-ALLOWED_IMAGE_TYPES = {
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-}
-
 @router.post("", status_code=201)
 def create_job(file: UploadFile = File(...)):
     return create_job_from_upload(file)
