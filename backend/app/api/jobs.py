@@ -1,11 +1,15 @@
 import json
-import shutil
 from pathlib import Path
-from uuid import uuid4
+
 
 import httpx
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from backend.app.services.job_storage import load_job_status, save_job_status
+
+from backend.app.services.job_storage import (
+    create_job_from_upload,
+    load_job_status,
+    save_job_status,
+)
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -30,40 +34,8 @@ CONTENT_TYPES_BY_EXTENSION = {
 
 @router.post("", status_code=201)
 def create_job(file: UploadFile = File(...)):
-    if file.content_type not in ALLOWED_IMAGE_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail="Unsupported image type"
-        )
+    return create_job_from_upload(file)
 
-    job_id = str(uuid4())
-    job_dir = JOBS_DIR / job_id
-    input_dir = job_dir / "input"
-
-    input_dir.mkdir(parents=True, exist_ok=True)
-
-    file_extension = Path(file.filename or "").suffix.lower()
-    saved_filename = f"original{file_extension}"
-    saved_file_path = input_dir / saved_filename
-
-    with saved_file_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    job_status = {
-        "job_id": job_id,
-        "status": "uploaded",
-        "message": "Image uploaded successfully.",
-        "original_filename": file.filename,
-        "stored_filename": saved_filename,
-        "content_type": file.content_type,
-    }
-
-    status_file_path = job_dir / "status.json"
-
-    with status_file_path.open("w", encoding="utf-8") as status_file:
-        json.dump(job_status, status_file, indent=2)
-
-    return job_status
 
 
 @router.get("/{job_id}")
