@@ -1,6 +1,8 @@
 import httpx
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
+from backend.app.services.ai_service_client import analyze_image_file
+
 from backend.app.services.job_storage import (
     create_job_from_upload,
     load_job_status,
@@ -10,9 +12,6 @@ from backend.app.services.job_storage import (
     get_input_file_info
 )
 router = APIRouter(prefix="/jobs", tags=["jobs"])
-
-
-AI_SERVICE_ANALYZE_URL = "http://127.0.0.1:8001/analyze"
 
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg",
@@ -42,23 +41,11 @@ def process_job(job_id: str):
     save_job_status(job_id, job_status)
 
     try:
-        with input_file_path.open("rb") as image_file:
-            files = {
-                "file": (
-                    stored_filename,
-                    image_file,
-                    content_type,
-                )
-            }
-
-            response = httpx.post(
-                AI_SERVICE_ANALYZE_URL,
-                files=files,
-                timeout=30.0,
-            )
-
-            response.raise_for_status()
-            analysis_result = response.json()
+        analysis_result = analyze_image_file(
+            image_path=input_file_path,
+            filename=stored_filename,
+            content_type=content_type,
+        )
 
     except httpx.HTTPError as error:
         job_status["status"] = "failed"
