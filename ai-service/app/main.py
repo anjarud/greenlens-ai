@@ -1,52 +1,15 @@
-import time
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI
 
+from app.api.analysis import router as analysis_router
 
 app = FastAPI(title="GreenLens AI Service")
 
-MOCK_ANALYSIS_DELAY_SECONDS = 5
+app.include_router(analysis_router)
 
-ALLOWED_IMAGE_TYPES = {
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-}
 
 @app.get("/health")
 def health_check():
     return {
         "status": "ok",
         "service": "ai-service"
-    }
-
-@app.post("/analyze")
-def analyze_image(file: UploadFile = File(...)):
-    if file.content_type not in ALLOWED_IMAGE_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail="Only JPEG, PNG and WebP images are supported."
-        )
-
-    time.sleep(MOCK_ANALYSIS_DELAY_SECONDS)
-
-    return {
-        "provider": "mock",
-        "original_filename": file.filename,
-        "results": [
-            {
-                "scientific_name": "Monstera deliciosa",
-                "common_name": "Swiss cheese plant",
-                "confidence": 0.87
-            },
-            {
-                "scientific_name": "Epipremnum aureum",
-                "common_name": "Golden pothos",
-                "confidence": 0.09
-            },
-            {
-                "scientific_name": "Philodendron hederaceum",
-                "common_name": "Heartleaf philodendron",
-                "confidence": 0.04
-            }
-        ]
     }
