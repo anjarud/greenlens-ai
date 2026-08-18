@@ -9,11 +9,12 @@ Users can upload plant images, create analysis jobs, trigger image processing, a
 This project demonstrates a realistic full-stack application architecture with:
 
 * image upload handling
-* asynchronous-style job processing
-* job status management
+* job-based processing workflow
+* visible job status transitions
 * communication between separate backend and AI services
-* structured JSON result storage
+* structured JSON status and result storage
 * REST API design with FastAPI
+* modular backend structure with routers and services
 * preparation for an external AI API integration
 * later frontend integration with React and TypeScript
 
@@ -34,8 +35,11 @@ Currently implemented:
 * job status stored as `status.json`
 * processing endpoint that calls the AI service
 * mock AI analysis result
+* mock processing delay to make the `processing` status visible
 * result storage as `result.json`
 * result retrieval endpoint
+* backend router/service structure
+* AI service router/service structure
 
 Not implemented yet:
 
@@ -110,8 +114,9 @@ The backend is responsible for:
 The AI service is responsible for:
 
 * accepting an image from the backend
-* analyzing the image
+* validating supported image types
 * returning normalized analysis results
+* simulating processing time during mock analysis
 * later connecting to the Pl@ntNet REST API
 
 ## Project Structure
@@ -120,15 +125,27 @@ The AI service is responsible for:
 greenlens-ai/
 ├─ backend/
 │  ├─ app/
-│  │  ├─ main.py
-│  │  └─ services/
-│  │     └─ __init__.py
+│  │  ├─ api/
+│  │  │  ├─ __init__.py
+│  │  │  └─ jobs.py
+│  │  ├─ services/
+│  │  │  ├─ __init__.py
+│  │  │  ├─ ai_service_client.py
+│  │  │  └─ job_storage.py
+│  │  ├─ __init__.py
+│  │  └─ main.py
 │  ├─ data/
 │  │  └─ jobs/
 │  └─ requirements.txt
 │
 ├─ ai-service/
 │  ├─ app/
+│  │  ├─ api/
+│  │  │  ├─ __init__.py
+│  │  │  └─ analysis.py
+│  │  ├─ services/
+│  │  │  ├─ __init__.py
+│  │  │  └─ mock_analyzer.py
 │  │  └─ main.py
 │  └─ requirements.txt
 │
@@ -140,6 +157,56 @@ greenlens-ai/
 ```
 
 Note: `backend/data/`, `.venv/`, `.env`, and generated files are ignored by Git.
+
+## Backend Structure
+
+The backend is split into a small application entry point, API router, and service modules.
+
+```
+backend/app/main.py
+```
+
+Creates the FastAPI application, includes the jobs router, and provides the `/health` endpoint.
+
+```
+backend/app/api/jobs.py
+```
+
+Contains the job-related API endpoints and coordinates the job workflow.
+
+```
+backend/app/services/job_storage.py
+```
+
+Handles local job storage, including uploaded input files, `status.json`, and `result.json`.
+
+```
+backend/app/services/ai_service_client.py
+```
+
+Handles the HTTP request from the backend to the separate AI service.
+
+## AI Service Structure
+
+The AI service is also split into an application entry point, API router, and service module.
+
+```
+ai-service/app/main.py
+```
+
+Creates the FastAPI application, includes the analysis router, and provides the `/health` endpoint.
+
+```
+ai-service/app/api/analysis.py
+```
+
+Contains the `/analyze` endpoint and validates uploaded image types.
+
+```
+ai-service/app/services/mock_analyzer.py
+```
+
+Provides the current mock analysis response and a short artificial delay to simulate processing time.
 
 ## API Endpoints
 
@@ -171,7 +238,7 @@ http://127.0.0.1:8001
 
 Endpoints:
 
-```text
+```
 GET  /health
 POST /analyze
 ```
@@ -276,7 +343,13 @@ GET /jobs/{job_id}
 POST /jobs/{job_id}/process
 ```
 
-8. Retrieve the stored analysis result with:
+8. During processing, the job status is temporarily set to:
+
+```
+processing
+```
+
+9. Retrieve the stored analysis result with:
 
 ```
 GET /jobs/{job_id}/result
@@ -325,19 +398,20 @@ GET /jobs/{job_id}/result
 
 Planned next steps:
 
-* refactor backend code into smaller modules
-* move job-related endpoints into a dedicated router
-* move file and status handling into a job storage service
-* move AI service communication into a dedicated client module
+* prepare AI service for Pl@ntNet integration
+* add configuration for external service URLs and API keys
 * replace mock AI results with Pl@ntNet API integration
 * add React frontend with upload form and result view
 * add SQLite persistence
 * add tests with pytest
 * add Docker and Docker Compose
+* improve error handling
 * improve README with screenshots and architecture diagram
 
 ## Notes
 
 This project is built as a learning and portfolio project. The current AI result is mocked. The planned Pl@ntNet integration will be added in a later step.
+
+The current processing workflow is request-based: the backend starts processing when `POST /jobs/{job_id}/process` is called and waits for the AI service response. A more advanced background processing approach may be added later.
 
 API keys and local environment files must not be committed to the repository.
