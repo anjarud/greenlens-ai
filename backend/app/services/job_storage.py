@@ -41,6 +41,12 @@ def load_job_result(job_id: str) -> dict:
     with result_file_path.open("r", encoding="utf-8") as result_file:
         return json.load(result_file)
 
+def save_job_result(job_id: str, result: dict) -> None:
+    result_file_path = JOBS_DIR / job_id / "result.json"
+
+    with result_file_path.open("w", encoding="utf-8") as result_file:
+        json.dump(result, result_file, indent=2)
+
 
 def create_job_from_upload(file: UploadFile) -> dict:
     if file.content_type not in ALLOWED_IMAGE_TYPES:

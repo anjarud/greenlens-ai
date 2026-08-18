@@ -1,8 +1,5 @@
-import json
-from pathlib import Path
-
-
 import httpx
+from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from backend.app.services.job_storage import (
@@ -10,6 +7,7 @@ from backend.app.services.job_storage import (
     load_job_status,
     load_job_result,
     save_job_status,
+    save_job_result,
 )
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -49,7 +47,6 @@ def process_job(job_id: str):
 
     job_dir = JOBS_DIR / job_id
     input_dir = job_dir / "input"
-    result_file_path = job_dir / "result.json"
 
     stored_filename = job_status.get("stored_filename")
 
@@ -107,8 +104,7 @@ def process_job(job_id: str):
             detail="AI service request failed."
         )
 
-    with result_file_path.open("w", encoding="utf-8") as result_file:
-        json.dump(analysis_result, result_file, indent=2)
+    save_job_result(job_id, analysis_result)
 
     job_status["status"] = "finished"
     job_status["message"] = "Image analysis completed successfully."
