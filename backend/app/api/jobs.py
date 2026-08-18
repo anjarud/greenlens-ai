@@ -8,6 +8,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from backend.app.services.job_storage import (
     create_job_from_upload,
     load_job_status,
+    load_job_result,
     save_job_status,
 )
 
@@ -124,13 +125,4 @@ def process_job(job_id: str):
 
 @router.get("/{job_id}/result")
 def get_job_result(job_id: str):
-    result_file_path = JOBS_DIR / job_id / "result.json"
-
-    if not result_file_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="Result not found. The job may not have been processed yet."
-        )
-
-    with result_file_path.open("r", encoding="utf-8") as result_file:
-        return json.load(result_file)
+    return load_job_result(job_id)

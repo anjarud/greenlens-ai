@@ -1,6 +1,10 @@
+import time
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
+
 app = FastAPI(title="GreenLens AI Service")
+
+MOCK_ANALYSIS_DELAY_SECONDS = 5
 
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg",
@@ -22,6 +26,8 @@ def analyze_image(file: UploadFile = File(...)):
             status_code=400,
             detail="Only JPEG, PNG and WebP images are supported."
         )
+
+    time.sleep(MOCK_ANALYSIS_DELAY_SECONDS)
 
     return {
         "provider": "mock",
